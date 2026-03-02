@@ -1,55 +1,42 @@
-# Prerequisites
-*.d
-
-# Object files
-*.o
-*.ko
-*.obj
+# =========================
+# ESP-IDF Build Artifacts
+# =========================
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults
+*.bin
 *.elf
-
-# Linker output
-*.ilk
 *.map
-*.exp
+*.log
 
-# Precompiled Headers
-*.gch
-*.pch
+# =========================
+# CMake
+# =========================
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# =========================
+# VSCode
+# =========================
+.vscode/
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+# =========================
+# macOS
+# =========================
+.DS_Store
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+# =========================
+# Python (if you use tools/scripts)
+# =========================
+__pycache__/
+*.pyc
+.venv/
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
-*.dwo
+# =========================
+# Temporary files
+# =========================
+*.swp
+*.bak
