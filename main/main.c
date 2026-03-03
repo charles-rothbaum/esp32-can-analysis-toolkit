@@ -52,7 +52,7 @@ static const char *TAG = "gvret";
 static bool bin_mode = true;              // start in binary so SavvyCAN can attach instantly
 static uint32_t can_bitrate = DEFAULT_BITRATE;
 static bool can_on = true;
-static bool listen_only = true;           // we're just sniffing
+static bool listen_only = false;           // true = just sniffing (safe)
 static const uint8_t NUM_BUSES = 1;       // we only do bus0 here
 
 static void uart_send(const uint8_t *buf, int len)
@@ -194,7 +194,6 @@ static esp_err_t start_can(uint32_t bitrate, bool want_listen_only)
     listen_only = want_listen_only;
     can_on = true;
 
-    ESP_LOGI(TAG, "CAN up: %u bps, listen_only=%d", (unsigned)can_bitrate, (int)listen_only);
     return ESP_OK;
 }
 
@@ -275,13 +274,10 @@ static void handle_cmd(uint8_t cmd, const uint8_t *payload, size_t payload_len)
                 (void)twai_stop();
                 (void)twai_driver_uninstall();
                 can_on = false;
-                ESP_LOGI(TAG, "CAN disabled by host");
             }
             else
             {
                 esp_err_t err = start_can(spd, sniff);
-                ESP_LOGI(TAG, "host asked for %u bps, listen_only=%d -> %s",
-                         (unsigned)spd, (int)sniff, esp_err_to_name(err));
             }
         }
         break;
@@ -435,16 +431,14 @@ static void setup_uart(void)
 void app_main(void)
 {
     // if you run GVRET on UART0, keep logs quiet so they don't trash the serial stream
-    esp_log_level_set("*", ESP_LOG_WARN);
+    esp_log_level_set("*", ESP_LOG_NONE);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
     setup_uart();
 
-    ESP_ERROR_CHECK(start_can(DEFAULT_BITRATE, true));
+    ESP_ERROR_CHECK(start_can(DEFAULT_BITRATE, false));
+
 
     xTaskCreatePinnedToCore(uart_rx_task, "uart_rx", 4096, NULL, 10, NULL, 0);
     xTaskCreatePinnedToCore(can_rx_task, "can_rx", 4096, NULL, 9, NULL, 1);
-
-    ESP_LOGI(TAG, "ready: UART%d @ %u baud (GVRET). listen-only sniffing by default.",
-             GVRET_UART, GVRET_BAUD);
 }
