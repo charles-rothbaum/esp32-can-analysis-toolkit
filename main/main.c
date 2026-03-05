@@ -16,40 +16,36 @@
 /*
   ESP32-S3 CAN sniffer bridge for SavvyCAN
 
-  What this does:
     - Listen on TWAI (CAN) and stream frames out over UART
     - SavvyCAN connects and shows frames live
 
-  Wiring TJA1051 or similar CAN transceiver:
     - TWAI_TX -> transceiver TXD
     - TWAI_RX -> transceiver RXD
     - CANH/CANL -> bus
 
-  Heads-up:
-    - UART is 1,000,000 baud for best performance with savvvyCAN
-    - Listen-only by default for safe sniffing
 */
 
 static const char *TAG = "gvret";
 
-/* ====== USER CONFIG ====== */
 #define CAN_TX GPIO_NUM_5
 #define CAN_RX GPIO_NUM_4
 
-#define DEFAULT_BITRATE 500000 // 500k is a common default for most cars, try 250k or 125k if unsuccessful
+#define DEFAULT_BITRATE 500000 // 500k is common default, try 250k or 125k if unsuccessful
 
-// UART0 is wired to the USB-serial on most esp32 devkits, so you can connect savvyCAN directy to it. 
-// Otherwise, move GVRET to UART1 + use an external USB-UART dongle.
+// UART0 is wired to the USB-serial on most esp32 devkits, so you can connect savvyCAN directy to it.
 #define GVRET_UART UART_NUM_0
 #define GVRET_TX GPIO_NUM_43
 #define GVRET_RX GPIO_NUM_44
 #define GVRET_BAUD 1000000
-/* ========================= */
+
+
+
+
 
 #define UART_RX_BUF 2048
 
 // GVRET state
-static bool bin_mode = true;              // start in binary so SavvyCAN can attach instantly
+static bool bin_mode = true;
 static uint32_t can_bitrate = DEFAULT_BITRATE;
 static bool can_on = true;
 static bool listen_only = false;           // true = just sniffing (safe)
@@ -112,7 +108,7 @@ static void reply_time(void)
 
 static void reply_device_info(void)
 {
-    // SavvyCAN asks for this. We give it something reasonable.
+    // SavvyCAN asks for this.
     uint16_t build = 1;
     uint8_t eeprom_ver = 1;
     uint8_t file_out_type = 0;
@@ -159,7 +155,6 @@ static void reply_num_buses(void)
 
 static esp_err_t start_can(uint32_t bitrate, bool want_listen_only)
 {
-    // "make it work" style: stop + uninstall first, ignore errors.
     (void)twai_stop();
     (void)twai_driver_uninstall();
 
@@ -181,7 +176,7 @@ static esp_err_t start_can(uint32_t bitrate, bool want_listen_only)
     twai_general_config_t gcfg = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX, CAN_RX, TWAI_MODE_NORMAL);
     gcfg.mode = want_listen_only ? TWAI_MODE_LISTEN_ONLY : TWAI_MODE_NORMAL;
 
-    // accept everything (sniffer mode)
+    // accept everything
     twai_filter_config_t fcfg = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     esp_err_t err = twai_driver_install(&gcfg, &tcfg, &fcfg);
@@ -241,7 +236,7 @@ static void send_can_to_host(const twai_message_t *m)
     uart_send(out, (int)idx);
 }
 
-//GVRET command handler. Only a few commands implemented for now
+//GVRET command handler.
 static void handle_cmd(uint8_t cmd, const uint8_t *payload, size_t payload_len)
 {
     switch (cmd)
@@ -254,7 +249,6 @@ static void handle_cmd(uint8_t cmd, const uint8_t *payload, size_t payload_len)
 
     case 0x05:
     {
-        // host sets bitrate / enable / listen-only for bus0.
         if (payload_len < 4) break;
 
         uint32_t cfg = ((uint32_t)payload[0]) |
@@ -286,7 +280,7 @@ static void handle_cmd(uint8_t cmd, const uint8_t *payload, size_t payload_len)
     case 0x00:
     {
         // transmit frame from host -> CAN bus.
-        // FYI: if we're in listen-only this will fail.
+        // this'll fail in listen only mode
         if (payload_len < 5) break;
 
         uint32_t id = ((uint32_t)payload[0]) |
@@ -320,7 +314,6 @@ static void handle_cmd(uint8_t cmd, const uint8_t *payload, size_t payload_len)
     }
 
     default:
-        // not implemented. savvyCan won't complain, but device won't show in device list.  
         break;
     }
 }
@@ -382,7 +375,7 @@ static void uart_rx_task(void *arg)
                 {
                     if (pay_len < sizeof(payload))
                         payload[pay_len++] = b;
-                    // else just drop it. keep it simple.
+                    // else just drop it.
                 }
                 break;
             }
@@ -430,7 +423,7 @@ static void setup_uart(void)
 
 void app_main(void)
 {
-    // if you run GVRET on UART0, keep logs quiet so they don't trash the serial stream
+    //had to keep logs quiet on the streamm
     esp_log_level_set("*", ESP_LOG_NONE);
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
