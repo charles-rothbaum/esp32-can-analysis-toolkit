@@ -7,7 +7,6 @@ This project turns an ESP32-S3 into a CAN bus sniffer that streams frames to [Sa
 - Reads CAN traffic from the ESP32 TWAI peripheral.
 - Streams frames over UART at `1,000,000` baud.
 - Supports SavvyCAN GVRET commands needed for live sniffing.
-- Starts in listen-only mode by default for safer bus monitoring.
 
 ## Hardware
 
@@ -57,7 +56,7 @@ Replace `/dev/tty.usbmodemXXXX` with your actual serial device.
 
 Tune these values in source if needed:
 
-- CAN bitrate (default `500000`) but try 250000 or 125000 if unsuccesful
+- CAN bitrate (default `500000`) 
 - TX/RX GPIO pins
 - UART port (`UART0` vs `UART1`)
 - Listen-only mode
