@@ -32,7 +32,6 @@ static const char *TAG = "gvret";
 
 #define DEFAULT_BITRATE 500000 // 500k is common default, try 250k or 125k if unsuccessful
 
-// UART0 is wired to the USB-serial on most esp32 devkits, so you can connect savvyCAN directy to it.
 #define GVRET_UART UART_NUM_0
 #define GVRET_TX GPIO_NUM_43
 #define GVRET_RX GPIO_NUM_44
@@ -48,8 +47,8 @@ static const char *TAG = "gvret";
 static bool bin_mode = true;
 static uint32_t can_bitrate = DEFAULT_BITRATE;
 static bool can_on = true;
-static bool listen_only = false;           // true = just sniffing (safe)
-static const uint8_t NUM_BUSES = 1;       // we only do bus0 here
+static bool listen_only = true;           // true = just sniffing (safe)
+static const uint8_t NUM_BUSES = 1;
 
 static void uart_send(const uint8_t *buf, int len)
 {
@@ -58,10 +57,8 @@ static void uart_send(const uint8_t *buf, int len)
 }
 
 /*
-  GVRET messages are basically:
+  GVRET message reply:
     0xF1, cmd, payload..., 0x00
-
-  (0x00 is the terminator)
 */
 static void send_reply(uint8_t cmd, const uint8_t *payload, size_t payload_len)
 {
@@ -86,14 +83,14 @@ static void send_reply(uint8_t cmd, const uint8_t *payload, size_t payload_len)
 
 static void reply_keepalive(void)
 {
-    // ping DE AD to keep SavvyCan connected.
+    // just pinging to keep the connection alive
     uint8_t p[2] = {0xDE, 0xAD};
     send_reply(0x09, p, sizeof(p));
 }
 
 static void reply_time(void)
 {
-    // just keeping track of current time since boot in microseconds for sync
+    // current time since boot in microseconds for sync
     uint32_t us = (uint32_t)(esp_timer_get_time() & 0xFFFFFFFFu);
 
     uint8_t p[4] = {
@@ -129,7 +126,7 @@ static void reply_device_info(void)
 
 static void reply_bus_config(void)
 {
-    // bit0 = enable, bit4 = listen-only
+    // bit0 = enable. bit4 = listen-only
     uint8_t flags = 0;
     if (can_on) flags |= 0x01;
     if (listen_only) flags |= 0x10;
@@ -193,11 +190,11 @@ static esp_err_t start_can(uint32_t bitrate, bool want_listen_only)
 }
 
 /*
-  Send a CAN frame to host in GVRET rx format
+  Pack our CAN frame in a GVRET rx format:
 
     0xF1 0x00
-    timestamp u32 (us)
-    id u32 (bit31 set means extended)
+    timestamp u32
+    id u32
     (bus<<4) | dlc
     data bytes
     0x00
@@ -280,7 +277,7 @@ static void handle_cmd(uint8_t cmd, const uint8_t *payload, size_t payload_len)
     case 0x00:
     {
         // transmit frame from host -> CAN bus.
-        // this'll fail in listen only mode
+        // this'll fail in listen only mode (set listen_only = false to transmit on your target)
         if (payload_len < 5) break;
 
         uint32_t id = ((uint32_t)payload[0]) |
@@ -349,7 +346,7 @@ static void uart_rx_task(void *arg)
 
             if (!bin_mode)
             {
-                // I don't need text mode.
+                // I don't want text mode.
                 continue;
             }
 
